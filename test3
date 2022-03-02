@@ -1,0 +1,30 @@
+#! /bin/bash
+
+
+#move this script in game stonkterminal folder. make it executbale with "chmod +x stocksh"
+
+
+#limitgain=5 #limit the number of gainers stocks displayed
+
+lines=$(python ~/GamestonkTerminal/terminal.py /stocks/disc/gainers -l 5 --export csv/../quit/exit)
+
+
+path=$(echo $lines | grep -Eo  "/home/gabriele/GamestonkTerminal/exports/stocks/discovery/gainers_[0-9]*_[0-9]*.csv" | head -n 1)
+echo "        "
+echo $path
+
+
+days=6  #number of days 1-6 in the past to extract tweets. (default: 6)
+limitsent=20 #limit of tweets to extract per hour. (default: 15)
+
+
+gainers_record2=($(awk -F "\"*,\"*" '{print $2}' ${path}))
+for i in "${gainers_record2[@]:1}"
+do
+python ~/GamestonkTerminal/terminal.py <<END
+/stocks/load $i/../stocks/ba/sentiment -l ${limitsent} -d ${days}/../quit  
+exit
+END
+done
+
+echo "------------"
