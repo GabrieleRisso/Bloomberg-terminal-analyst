@@ -1,30 +1,147 @@
 #! /bin/bash
 
+app="/GamestonkTerminal"
+rootpath="$PWD"
 
 #move this script in game stonkterminal folder. make it executbale with "chmod +x stocksh"
 
-
 #limitgain=5 #limit the number of gainers stocks displayed
 
-lines=$(python ~/GamestonkTerminal/terminal.py /stocks/disc/gainers -l 5 --export csv/../quit/exit)
+#Active
+#Arkord
+#Asc
+#Cnews
+#Divcal
+#Fds
+#Fipo
+#Ford
+#OK - Gainers
+#OK - Gtech
+#Hotpenny
+#Losers
+#Lowfloat
+#Pipo
+#Rtat
+#Trending
+#Ugs
+#Ulc
+#Upcoming
 
 
-path=$(echo $lines | grep -Eo  "/home/gabriele/GamestonkTerminal/exports/stocks/discovery/gainers_[0-9]*_[0-9]*.csv" | head -n 1)
-echo "        "
-echo $path
-
-
-days=6  #number of days 1-6 in the past to extract tweets. (default: 6)
-limitsent=20 #limit of tweets to extract per hour. (default: 15)
-
-
-gainers_record2=($(awk -F "\"*,\"*" '{print $2}' ${path}))
-for i in "${gainers_record2[@]:1}"
-do
-python ~/GamestonkTerminal/terminal.py <<END
-/stocks/load $i/../stocks/ba/sentiment -l ${limitsent} -d ${days}/../quit  
-exit
+lines=$(python ~/GamestonkTerminal/terminal.py <<END
+/stocks/disc/gainers -l 5 --export csv/../quit/exit
 END
+)
+
+
+
+
+path=$(echo "$lines" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/discovery/gainers_[0-9]*_[0-9]*.csv" | head -n 1)
+
+echo "$path"
+
+export days=2  #number of days 1-6 in the past to extract tweets. (default: 6)
+export limitsent=3 #limit of tweets to extract per hour. (default: 15)
+
+
+
+
+
+
+#behiviural analisis 
+
+#Bullbear -> done
+#Getdd
+#Headlines
+#Hist
+#Infer
+#Mentions -> to be performed on a restricted stock number since ythere is no export possibility
+#Messages
+#Popular
+#àQueries
+#Regions
+#Rise
+#entiment
+#Spac
+#Spac C
+#Stalker
+#Stats
+#Trend
+#Trending
+#Watchlist
+#Wsb
+
+function bullbear { #depend on a stock i passaed
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/bullbear/../quit/exit`
+echo ${output} > "${rootpath}"/outfile.txt
+#need few safty check on the psoition of the indexise. if it fails the psoision is shifted
+index_bull=$(grep -Eo "[0-9]*.[0-9]" "${rootpath}"/outfile.txt)
+index_bear=$(grep -Eo "[0-9]*.[0-9]" "${rootpath}"/outfile.txt)
+
+if [ -z "$index_bull" ]
+then
+	echo "$i has no bullbear index"
+	echo "$i, `no`,'-1','-1'" >> bullbear.csv
+else
+	echo "${i} is bullish at ${index_bull} and bearish at ${index_bear}\n"
+	echo "$i,${index_bull},${index_bear}" >> bullbear.csv
+fi
+}
+
+#python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/bullbear/../quit/exit 2> ~/GamestonkTerminal/file.txt
+
+#echo=$bullbear[@]
+
+#bullbear=$(python ~/GamestonkTerminal/terminal.py <<END
+#/stocks/load "${i}"/ba/bullbear/../quit/exit
+#END
+#)
+
+
+function sentiment {
+python ~/GamestonkTerminal/terminal.py <<END
+/stocks/ba/load ${i}/sentiment -l ${limitsent} -d ${days}/../quit/exit
+END
+}
+
+
+function headlines {
+
+}
+
+
+export i=0
+gainers_record2=($(awk -F "\"*,\"*" '{print $2}' ${path} ))
+for i in ${gainers_record2[@]:1} #im using gaines simbol as the best stock but we will wuse a more refined list
+do
+
+
+#ba
+bullbear
+sentiment
+headlines
+
+#output=$((your command here) 2> &1)
+
+#python yourscript 2> return_file
+
+
+
+
+
+
+
+
+#mention part
+
+
+
+
 done
 
-echo "------------"
+
+
+ 
+ 
+ 
+ 
