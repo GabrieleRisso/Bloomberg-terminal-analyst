@@ -40,8 +40,6 @@ path=$(echo "$lines" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/disco
 
 echo "$path"
 
-export days=2  #number of days 1-6 in the past to extract tweets. (default: 6)
-export limitsent=3 #limit of tweets to extract per hour. (default: 15)
 
 
 
@@ -71,7 +69,55 @@ export limitsent=3 #limit of tweets to extract per hour. (default: 15)
 #Watchlist
 #Wsb
 
-function bullbear { #depend on a stock i passaed
+#the ba that require load of stock:
+
+#  bullbear      estimate quick sentiment from last 30 messages on board                    ?
+#?     messages      output up to the 30 last messages on the board                             ?
+#? [Twitter]                                                                                    ?
+#?              infer about stock's sentiment from latest tweets                           ?
+#?     sentiment     in-depth sentiment prediction from tweets over time                        ?
+#? [Google]                                                                                     ?
+#?     mentions      interest over time based on stock's mentions                               ?
+#?     regions       regions that show highest interest in stock                                ?
+#?     queries       top related queries with this stock                                        ?
+#?     rise          top rising related queries with stock        
+#hist
+
+
+function regions5-9 {
+#usage: regions [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
+#Plot bars of regions based on stockÕs interest. [Source: Google]
+
+#optional arguments:
+#  -l LIMIT, --limit LIMIT
+#                        limit of regions to plot that show highest interest. (default: 10)
+#  -h, --help            show this help message (default: False)
+#  --export {csv,json,xlsx,png,jpg,pdf,svg}
+#                        Export raw data into csv, json, xlsx and figure into png, jpg, 
+export region_limit=3
+#Saved file: /home/gabriele/GamestonkTerminal/exports/common/behavioural_analysis/regions_20220305_155918.csv
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/regions -l ${regions_limit} --export cvs`
+region_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/regions_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+
+region_geoname=($(awk -F "\"*,\"*" '{print $1}' ${region_path} ))
+region_interest=($(awk -F "\"*,\"*" '{print $2}' ${region_path} ))
+
+[[ ! -z "$region_interest[-1]" ]] || $region_interest[-1]=-9999
+[[ ! -z "$region_interest[-2]" ]] || $region_interest[-2]=-9999
+[[ ! -z "$region_geoname[-1]" ]] || $region_geoname[-1]=-9999
+[[ ! -z "$region_geoname[-2]" ]] || $region_geoname[-2]=-9999
+
+#the last of the array is has the most interest
+
+#add the two region with most interest in the stock
+awk -v d="${region_geoname[-1]}" -F"," 'BEGIN { OFS = "," } {$9=d; print}' ba5.csv > ba6.csv
+awk -v d="${region_interest[-1]}" -F"," 'BEGIN { OFS = "," } {$10=d; print}' ba6.csv > ba7.csv
+awk -v d="${region_geoname[-2]}" -F"," 'BEGIN { OFS = "," } {$11=d; print}' ba7.csv > ba8.csv
+awk -v d="${region_interest[-2]}" -F"," 'BEGIN { OFS = "," } {$12=d; print}' ba8.csv > ba9.csv
+
+}
+
+function bullbear1 { #depend on a stock i passaed
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/bullbear/../quit/exit`
 echo ${output} > "${rootpath}"/outfile.txt
 #need few safty check on the psoition of the indexise. if it fails the psoision is shifted
@@ -81,10 +127,10 @@ index_bear=$(grep -Eo "[0-9]*.[0-9]" "${rootpath}"/outfile.txt)
 if [ -z "$index_bull" ]
 then
 	echo "$i has no bullbear index"
-	echo "$i, `no`,'-1','-1'" >> bullbear.csv
+	echo "$i,'-9999','-9999'" >> ba1.csv
 else
 	echo "${i} is bullish at ${index_bull} and bearish at ${index_bear}\n"
-	echo "$i,${index_bull},${index_bear}" >> bullbear.csv
+	echo "$i,${index_bull},${index_bear}" >> ba1.csv
 fi
 }
 
@@ -97,17 +143,101 @@ fi
 #END
 #)
 
+#ba tabele csv
+#1sotck i,2${index_bull},3${index_bear},4$headline_sentiment[0],5ScS,6AcS,7infer_highpositivesent,8infer_highnegativesent,9region_geoname#1,10region_interest#1,11region_geoname#2,12region_interest#2
+
+function infer2_5 {
+###to ber run every hour to have relyable result to study
+
+#infer [-l LIMIT] [-h] [--export {csv,json,xlsx}]
+
+export ifner_limit=100  #limit of latest tweets to infer from. (default: 100)
+
+#From: 2022-02-19 17:08:20
+#To:   2022-02-19 18:04:18
+#100 tweets were analyzed.
+#Frequency of approx 1 tweet every 34 seconds.
+#The summed compound sentiment of AAPL is: 13.2
+#The average compound sentiment of AAPL is: 0.13
+#Of the last 100 tweets, 45.00 % had a higher positive sentiment
+#Of the last 100 tweets, 18.00 % had a higher negative sentiment
+
+
+
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/infer -l ${infer_limit}`
+
+infer_fromday=$(echo "$output" | grep -Eo  "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" | head -n 1)
+[[ ! -z "$infer_fromday" ]] || $infer_fromday=-9999
+
+infer_today=$(echo "$output" | grep -Eo  "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" | head -n 2)
+[[ ! -z "$infer_fromday" ]] || $infer_fromday=-9999
+
+infer_fromtime=$(echo "$output" | grep -Eo  "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" | head -n 1)
+[[ ! -z "$infer_fromtime" ]] || $infer_fromtime=-9999
+
+infer_totime=$(echo "$output" | grep -Eo  "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" | head -n 2)
+[[ ! -z "$infer_totime" ]] || $infer_totime=-9999
+
+infer_ScSAAPL=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 1) #sum
+[[ ! -z "$infer_ScSAAPL" ]] || $infer_ScSAAPL=-9999
+
+infer_AcSAAPL=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 2) #average
+[[ ! -z "$infer_AcSAAPL" ]] || $infer_AcSAAPL=-9999
+
+infer_highpostivesent=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 3) #percentage
+[[ ! -z "$infer_highpostivesent" ]] || $infer_highpostivesent=-9999
+
+infer_highnegativesent=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 4)
+[[ ! -z "$infer_highnegativesent" ]] || $infer_highnegativesent=-9999
+
+
+#add column to ba genral csv file 
+awk -v d="$infer_ScSAAPL" -F"," 'BEGIN { OFS = "," } {$5=d; print}' ba1.csv > ba2.csv
+awk -v d="$infer_AcSAAPL" -F"," 'BEGIN { OFS = "," } {$6=d; print}' ba2.csv > ba3.csv
+awk -v d="$infer_highpostivesent" -F"," 'BEGIN { OFS = "," } {$7=d; print}' ba3.csv > ba4.csv
+awk -v d="$infer_highnegativesent" -F"," 'BEGIN { OFS = "," } {$8=d; print}' ba4.csv > ba5.csv
+
+echo "$output"
+
+}
 
 function sentiment {
-python ~/GamestonkTerminal/terminal.py <<END
-/stocks/ba/load ${i}/sentiment -l ${limitsent} -d ${days}/../quit/exit
-END
+
+export days=2  #number of days 1-6 in the past to extract tweets. (default: 6)
+export limitsent=10 #limit of tweets to extract per hour. (default: 15) 10-60
+#find out what is AAPL sentiment.
+#usage: sentiment [-l LIMIT] [-d N_DAYS_PAST] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
+
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/sentiment -l ${limitsent} -dcommon/behavioural_analysis/sentiment ${days} --export csv/../quit/exit`
+sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/sentiment_[0-9]*_[0-9]*.csv" | head -n 1)
+##cp $sentiment_path ${HOME}/GamestonkTerminal/report
+
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/sentiment -l ${limitsent} -dcommon/behavioural_analysis/sentiment ${days} --export jpg/../quit/exit`
+sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/sentiment_[0-9]*_[0-9]*.jpg" | head -n 1)
+cp $sentiment_path ${HOME}/GamestonkTerminal/report/sentiment.jpg
+#254,4,2022-03-03 12:23:07,RT @JasonMaPhD: $TSLA will be $2000 this year!,0.0,0.0,0.0,1.0,-0.4384,1,3,3,2022-03-03 12:23:07
+
+#need to investigate vader polarity score and vader sentiment quest
 }
 
 
-function headlines {
+function headlines2 {
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/headline --export csv/../quit/exit`
+headline_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/headlines_[0-9]*_[0-9]*.csv" | head -n 1)
+headline_date=($(awk -F "\"*,\"*" '{print $1}' ${headline_path} ))
+headline_sentiment=($(awk -F "\"*,\"*" '{print $2}' ${headline_path} ))
+#add column to ba1 with sentiment
+awk -v d="$headline_sentiment[0]" -F"," 'BEGIN { OFS = "," } {$4=d; print}' ba.csv > ba2.csv
 
+#for now i will only take the the present sentiment of  the day an not use the other daa but a function to fina a whaited mean value is needed.
+
+#actually thsi is not a good idea to takee only one value  but ok
+#https://stackoverflow.com/questions/9506810/add-column-to-end-of-csv-file-using-awk-in-bash-script
+#need a foor loop to do the formual
 }
+
+
+
 
 
 export i=0
@@ -117,10 +247,10 @@ do
 
 
 #ba
-bullbear
-sentiment
-headlines
-
+bullbear1
+#sentiment
+headlines2
+infer3
 #output=$((your command here) 2> &1)
 
 #python yourscript 2> return_file
