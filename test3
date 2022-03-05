@@ -33,6 +33,10 @@ lines=$(python ~/GamestonkTerminal/terminal.py <<END
 END
 )
 
+mkdir ${HOME}/dailyreport
+
+dir="{HOME}/dailyreport/$i"
+
 
 
 
@@ -83,6 +87,32 @@ echo "$path"
 #?     rise          top rising related queries with stock        
 #hist
 
+function mentions13_14 {
+#usage: mentions [-s START] [-h]
+#Uses Google metrics to plot ticker mentions over time.
+
+#optional arguments:
+#  -s START, --start START
+#                        starting date (format YYYY-MM-DD) from when we are interested in stock's mentions. (default: 2020-09-15 00:00:00)
+mention_start="2018-01-01"
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/mention -s ${mention_start} --export cvs/exit`
+outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/mention -s ${mention_start} --export png/exit`
+
+mention_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/mention_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+mention_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/mention_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+
+mv $mention_pngpath "${dir}"/mentions.png
+
+mention_value=($(awk -F "\"*,\"*" '{print $2}' ${mention_path} ))
+mention_date=($(awk -F "\"*,\"*" '{print $1}' ${mention_path} ))
+
+#neede function to produce an index that express how hot is the query in the last week.
+#Weighted Mean = ·ni=1 (xi*wi)/·ni=1wi
+
+awk -v d="${mention_value[-1]}" -F"," 'BEGIN { OFS = "," } {$16=d; print}' ba13.csv > ba14.csv #add present day value of mentions with no respect to the past
+
+}
+
 function rise10_13 {
 #usage: rise [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
 #Print top rising related queries with this stockÕs query. [Source: Google]
@@ -116,25 +146,32 @@ function rise10_13 {
 
 rise_limit=6
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export cvs`
-rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export png`
 
+rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+rise_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+
+mv $rise_pngpath "${dir}"/rise.png  
 
 rise_queri=($(awk -F "\"*,\"*" '{print $1}' ${rise_path} ))  #to check clumn number 0 or 1 
 #rise_value=($(awk -F "\"*,\"*" '{print $2}' ${rise_path} )) 
 
 #now i removee word like stock or price or duplicate to the sting in order to extract new stocks
-i=1 #skip title
-for i in rise_limit {
-rise_queri[$i]="${ries_queri#stock}"; rise_queri="${rise_queri#price}"
+#skip title
+for i in {1 .. $rise_limit}
+	do
+	rise_queri[$i]="${ries_queri#stock}"; rise_queri="${rise_queri#price}"
 #if two follwing quari are the same after the revoval of price and stock do -> move array back 1
+	done
+rise_queri_noduplicate=($(echo "${rise_queri[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+awk -v d="${rise_queri_noduplicate[1]}" -F"," 'BEGIN { OFS = "," } {$13=d; print}' ba10.csv > ba11.csv
+awk -v d="${rise_queri_noduplicate[2]}" -F"," 'BEGIN { OFS = "," } {$14=d; print}' ba11.csv > ba12.csv
+awk -v d="${rise_queri_noduplicate[3]}" -F"," 'BEGIN { OFS = "," } {$15=d; print}' ba12.csv > ba13.csv
+
 }
 
 
-awk -v d="${rise_queri[1]}" -F"," 'BEGIN { OFS = "," } {$13=d; print}' ba10.csv > ba11.csv
-awk -v d="${rise_queri[2]}" -F"," 'BEGIN { OFS = "," } {$14=d; print}' ba11.csv > ba12.csv
-awk -v d="${rise_queri[3]}" -F"," 'BEGIN { OFS = "," } {$15=d; print}' ba12.csv > ba13.csv
-
-}
 function queries to do but optional{
 #usage: queries [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
 #Print top related queries with this stockÕs query. [Source: Google]
@@ -178,7 +215,12 @@ function regions6-10 {
 export region_limit=3
 #Saved file: /home/gabriele/GamestonkTerminal/exports/common/behavioural_analysis/regions_20220305_155918.csv
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/regions -l ${regions_limit} --export cvs`
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/regions -l ${regions_limit} --export png`
+
 region_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/regions_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+region_pngpath=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/regions_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+
+mv $region_pngpath "${dir}"/region.png  
 
 region_geoname=($(awk -F "\"*,\"*" '{print $1}' ${region_path} ))
 region_interest=($(awk -F "\"*,\"*" '{print $2}' ${region_path} ))
@@ -225,7 +267,7 @@ fi
 #)
 
 #ba tabele csv
-#1sotck i,2${index_bull},3${index_bear},4$headline_sentiment[0],5ScS,6AcS,7infer_highpositivesent,8infer_highnegativesent,9region_geoname#1,10region_interest#1,11region_geoname#2,12region_interest#2,13 rise quari1,14risequari2,15risequary3
+#1sotck i,2${index_bull},3${index_bear},4$headline_sentiment[0],5ScS,6AcS,7infer_highpositivesent,8infer_highnegativesent,9region_geoname#1,10region_interest#1,11region_geoname#2,12region_interest#2,13 rise quari1,14risequari2,15risequary3,16mention_value
 
 function infer2_6 {
 ###to ber run every hour to have relyable result to study
@@ -295,7 +337,7 @@ sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/c
 
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/sentiment -l ${limitsent} -dcommon/behavioural_analysis/sentiment ${days} --export jpg/../quit/exit`
 sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/sentiment_[0-9]*_[0-9]*.jpg" | head -n 1)
-#cp $sentiment_path ${HOME}/GamestonkTerminal/report/sentiment.jpg
+mv $sentiment_path  "{$dir}"/sentiment.jpg
 #254,4,2022-03-03 12:23:07,RT @JasonMaPhD: $TSLA will be $2000 this year!,0.0,0.0,0.0,1.0,-0.4384,1,3,3,2022-03-03 12:23:07
 
 #need to investigate vader polarity score and vader sentiment quest
@@ -304,7 +346,14 @@ sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/c
 
 function headlines2 {
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/headline --export csv/../quit/exit`
+outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/headline --export png/../quit/exit`
+
 headline_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/headlines_[0-9]*_[0-9]*.csv" | head -n 1)
+headline_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/headlines_[0-9]*_[0-9]*.png" | head -n 1)
+
+mv $headline_pngpath  "{$dir}"/headline.png
+
+
 headline_date=($(awk -F "\"*,\"*" '{print $1}' ${headline_path} ))
 headline_sentiment=($(awk -F "\"*,\"*" '{print $2}' ${headline_path} ))
 #add column to ba1 with sentiment
@@ -326,6 +375,7 @@ gainers_record2=($(awk -F "\"*,\"*" '{print $2}' ${path} ))
 for i in ${gainers_record2[@]:1} #im using gaines simbol as the best stock but we will wuse a more refined list
 do
 
+mkdir ${HOME}/dailyreport/"$i"
 
 #ba
 bullbear1
@@ -333,6 +383,8 @@ bullbear1
 headlines2
 infer2_6
 regions6_10
+rise10_13
+mention13_14
 #output=$((your command here) 2> &1)
 
 #python yourscript 2> return_file
