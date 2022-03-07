@@ -1,14 +1,16 @@
 #! /bin/bash
 
-app="/GamestonkTerminal"
-rootpath="$PWD"
+#move this script in game gmaestonkterminal folder. make it executbale with "chmod +x stocksh"
 
 #variables
-export today=$(date -d "today" +"%Y/%m/%d")
-export 1month=$(date -d "30 days ago" +"%Y/%m/%d")
-export 3montago=$(date -d "90 days ago" +"%Y/%m/%d")
+oggi=$(date -d "today" +"%d/%m/%Y")
 
-#move this script in game stonkterminal folder. make it executbale with "chmod +x stocksh"
+today=$(date -d "today" +"%Y/%m/%d")
+1month=$(date -d "30 days ago" +"%Y/%m/%d")
+3montago=$(date -d "90 days ago" +"%Y/%m/%d")
+#TABLE ba.csv: fields 
+#1sotck i,2${index_bull},3${index_bear},4$headline_sentiment[0],5ScS,6AcS,7infer_highpositivesent,8infer_highnegativesent,9region_geoname#1,10region_interest#1,11region_geoname#2,12region_interest#2,13 rise quari1,14risequari2,15risequary3,16mention_value,17queri_queri_noduplicate[1],18queri_queri_noduplicate[2],19queri_queri_noduplicate[3],20
+
 
 #limitgain=5 #limit the number of gainers stocks displayed
 
@@ -32,79 +34,66 @@ export 3montago=$(date -d "90 days ago" +"%Y/%m/%d")
 #Ulc
 #Upcoming
 
-
-lines=$(python ~/GamestonkTerminal/terminal.py <<END
-/stocks/disc/gainers -l 5 --export csv/../quit/exit
-END
-)
-
-mkdir ${HOME}/dailyreport
-
-dir="{HOME}/dailyreport/$i"
-
+#folder where all the visualizable data (like plots and cool stuff is uploded to manual analysis)
+mkdir "${HOME}"/dailyreport
+#folder where seific stock info is stored during the generation of the data
+dir=""${HOME}"/dailyreport/${i}"
+#generate the dicovery folder with inside it a daily folder whit name the current date 
+mkdir "${HOME}"/dailyreport/disc/
+#folder where the current discovered stocks will be outputted
+disc=""${HOME}"/dailyreport/disc/"${oggi}""
 
 
-
+function gainers {
+number=5 #number of generated records
+#generate command
+lines=`python ~/GamestonkTerminal/terminal.py /stocks/disc/gainers -l ${number} --export csv/exit`
+#find path of the outputted file
 path=$(echo "$lines" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/discovery/gainers_[0-9]*_[0-9]*.csv" | head -n 1)
+#ectract only the column with the ticker value: ex TSLA
+export gainers_record=($(awk -F "\"*,\"*" '{print $2}' "${path}" )) #fist line is useless
 
-echo "$path"
-
-#nasdaq	10	2	10	810	75.21%
-#nasdaq	10	2	5	618	57.38%
-#nasdaq	10	3	10	358	33.24%
-#nasdaq	10	3	5	262	24.33%
-#amex	10	2	10	70	49.30%
-#amex	10	2	5	62	43.66%
-#nasdaq	100	2	10	271	25.16%
-#nasdaq	100	2	5	196	18.20%
-#nasdaq	100	3	10	97	9.01%
-#nasdaq	10	2	10	810	75.21%
-#nasdaq	10	2	5	618	57.38%
-#nasdaq	10	3	10	358	33.24%
-#nasdaq	10	3	5	262	24.33%
-
-
-
+}
 
 
 #behiviural analisis 
 #Bypass any paywall,
-
 #https://12ft.io/<URL>
 
 
 #https://github.com/CardosoJr/investing/tree/9cc20872c83037c2f7a17c62b47d3b4798f3a46f/Extractors/news
-#gnews
-#twitter
-#reddit
-#finhub (finnhub.io)
-#financialmodelingprep.com
+
+#gnews no
+#twitter ok 
+#reddit ok 
+#finhub (finnhub.io) ok 
+#financialmodelingprep.com maybe
 #newsapi.org
-#stocktwits.com
-#finbrain.tech
+#stocktwits.com ok
+#finbrain.tech ok
 
 #Bullbear -> done
-#Getdd
-#Headlines
-#Hist
-#Infer
+#Getdd todo
+#Headlines ok 
+#Hist ok 
+#Infer ok
 #Mentions -> to be performed on a restricted stock number since ythere is no export possibility
-#Messages
-#Popular
-#Ã Queries
-#Regions
-#Rise
-#entiment
-#Spac
-#Spac C
-#Stalker
-#Stats
-#Trend
-#Trending
-#Watchlist
+#Messages no
+#Popular ok
+#Ã Queries ok
+#Regions ok 
+#Rise ok 
+#sentiment ok 
+#Spac no - todoinweeklyreport
+#Spac C //
+#Stalker //
+#Stats : finhub.io is dead
+#Trend ok 
+#Trending ok 
+#Watchlist no
 #Wsb #not really intresting for now-
 
-#the ba that require load of stock:
+#the ba that require load of stock: done
 
 #  bullbear      estimate quick sentiment from last 30 messages on board                    ?
 #?     messages      output up to the 30 last messages on the board                             ?
@@ -118,45 +107,122 @@ echo "$path"
 #?     rise          top rising related queries with stock        
 #hist
 
+
+function trend {
+#ther i no stock to be passed to i, its a discover function
+#my api is not working so its a bit of guessig
+#only for last hour
+export trend_start="2018-01-01"
+export hour_start=0 #best is to find current time before the potntial buy to make a useful use of it
+export number=10
+
+#command
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/trend -s ${trend_start} -n ${number} --export cvs/exit`
+#find the path of the output file
+trend_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/trend_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+#copy/move the file to daily/disc/folder
+cp "$trend_path" "${disc}"/trend.csv
+
+#put the column into arrays to be used later
+export trend_ticker=($(awk -F "\"*,\"*" '{print $1}' "${trend_path}" ))
+trend_likes=($(awk -F "\"*,\"*" '{print $3}' "${trend_path}" ))
+trend_rhi=($(awk -F "\"*,\"*" '{print $4}' "${trend_path}" ))
+trend_ahi=($(awk -F "\"*,\"*" '{print $5}' "${trend_path}" ))
+
+#usage: trend [-s START] [-hr HOUR] [-n NUMBER] [-h] [--export {csv,json,xlsx}] [-l LIMIT]
+#Show most talked about tickers within the last one hour. Source: [Sentiment Investor]
+#  -s START, --start START
+#                        The starting date (format YYYY-MM-DD). Default: Today (default: 2022-02-16)
+#  -hr HOUR, --hour HOUR
+#                        Hour of the day in the 24-hour notation. Example: 14 (default: 0)
+#  -n NUMBER, --number NUMBER
+#                        Number of results returned from Sentiment Investor. Default: 10 (default: 10)
+#  --export {csv,json,xlsx}
+#                        Export raw data into csv, json, xlsx (default: )
+#  -l LIMIT, --limit LIMIT
+##                        Number of entries to show in data. (default: 10)
+
+#??????????????????????????????????????????
+#? TICKER ? TOTAL  ? LIKES  ? RHI  ? AHI  ?
+#??????????????????????????????????????????
+#? AMC    ? 120.00 ? 227.00 ? 1.70 ? 1.53 ?
+#??????????????????????????????????????????
+#? BTC    ? 97.00  ? 162.00 ? 1.75 ? 1.30 ?
+#??????????????????????????????????????????
+
+###to be used combined to popular array to find new ticker
+}
+
 function mentions13_14 {
+mention_start="2018-01-01"
+
+#perform the command
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/mention -s ${mention_start} --export cvs/exit`
+outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/mention -s ${mention_start} --export png/exit`
+
+#finde the path of the outputted files
+mention_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/mention_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+mention_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/mention_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+
+#move png plot to dailydisc/stockname/mention.png
+mv "$mention_pngpath" "${dir}"/mentions.png
+#fill arrays with values 
+mention_value=($(awk -F "\"*,\"*" '{print $2}' "${mention_path}" ))
+mention_date=($(awk -F "\"*,\"*" '{print $1}' "${mention_path}" ))
+
+#add the current google mmention rate for this stock in the ba table
+awk -v d="${mention_value[-1]}" -F"," 'BEGIN { OFS = "," } {$16=d; print}' ba13.csv > ba14.csv #add present day value of mentions with no respect to the past
+
 #usage: mentions [-s START] [-h]
 #Uses Google metrics to plot ticker mentions over time.
 
 #optional arguments:
 #  -s START, --start START
 #                        starting date (format YYYY-MM-DD) from when we are interested in stock's mentions. (default: 2020-09-15 00:00:00)
-mention_start="2018-01-01"
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/mention -s ${mention_start} --export cvs/exit`
-outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/mention -s ${mention_start} --export png/exit`
 
-mention_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/mention_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-mention_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/mention_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-
-mv $mention_pngpath "${dir}"/mentions.png
-
-mention_value=($(awk -F "\"*,\"*" '{print $2}' ${mention_path} ))
-mention_date=($(awk -F "\"*,\"*" '{print $1}' ${mention_path} ))
-
+#is the mentions rate growing ?
 #neede function to produce an index that express how hot is the query in the last week.
 #Weighted Mean = ·ni=1 (xi*wi)/·ni=1wi
 
-awk -v d="${mention_value[-1]}" -F"," 'BEGIN { OFS = "," } {$16=d; print}' ba13.csv > ba14.csv #add present day value of mentions with no respect to the past
 
 }
 
 function rise10_13 {
+#rise_queri_noduplicate is good to add to discovery for good stuff to analize later. to do
+
+rise_limit=6
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/rise -l ${rise_limit} --export cvs`
+outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/rise -l ${rise_limit} --export png`
+#path to files
+rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+rise_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+#mv them to stock dir
+mv "$rise_pngpath" "${dir}"/rise.png  
+#ectract sting quaery and put them in an arrays
+rise_queri=($(awk -F "\"*,\"*" '{print $1}' "${rise_path}" ))  #to check clumn number 0 or 1 
+#rise_value=($(awk -F "\"*,\"*" '{print $2}' ${rise_path} )) 
+
+#now i removee word like stock or price or duplicate to the sting in order to extract new stocks
+#skip title
+for j in {1 .. $rise_limit}
+	do
+	rise_queri="${rise_queri#stock}"; rise_queri="${rise_queri#price}" ; rise_queri=("${rise_queri/$i}");
+#if two follwing quari are the same after the revoval of price and stock do -> move array back 1
+	done
+#removin dublicate from array
+rise_queri_noduplicate=($(echo "${rise_queri[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+#put the top three related stock related queries in ba table
+awk -v d="${rise_queri_noduplicate[1]}" -F"," 'BEGIN { OFS = "," } {$13=d; print}' ba10.csv > ba11.csv
+awk -v d="${rise_queri_noduplicate[2]}" -F"," 'BEGIN { OFS = "," } {$14=d; print}' ba11.csv > ba12.csv
+awk -v d="${rise_queri_noduplicate[3]}" -F"," 'BEGIN { OFS = "," } {$15=d; print}' ba12.csv > ba13.csv
+
 #usage: rise [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
 #Print top rising related queries with this stockÕs query. [Source: Google]
-
 #optional arguments:
 #  -l LIMIT, --limit LIMIT
 #                        limit of top rising related queries to print. (default: 10)
-#  -h, --help            show this help message (default: False)
 #  --export {csv,json,xlsx,png,jpg,pdf,svg}
                       #  Export raw data into csv, json, xlsx and figure into png, jpg, pdf, svg (default: )
-#Example:
-
-#2022 Feb 16, 10:40 (?) /stocks/ba/ $ rise
 #Top rising AAPL's related queries
 #????????????????????????????
 #? query           ? value  ?
@@ -167,53 +233,56 @@ function rise10_13 {
 #????????????????????????????
 #? pltr            ? 103100 ?
 
-
+#CSV file 
 #,query,value
 #0,nio stock,485050
 #1,nio,358800
 #2,pltr,166750
-#3,pltr stock,130000
-#4,zm,104250
-
-rise_limit=6
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export cvs`
-outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export png`
-
-rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-rise_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-
-mv $rise_pngpath "${dir}"/rise.png  
-
-rise_queri=($(awk -F "\"*,\"*" '{print $1}' ${rise_path} ))  #to check clumn number 0 or 1 
-#rise_value=($(awk -F "\"*,\"*" '{print $2}' ${rise_path} )) 
-
-#now i removee word like stock or price or duplicate to the sting in order to extract new stocks
-#skip title
-for j in {1 .. $rise_limit}
-	do
-	rise_queri="${ries_queri#stock}"; rise_queri="${rise_queri#price}" ; rise_queri=("${rise_queri/$i}");
-#if two follwing quari are the same after the revoval of price and stock do -> move array back 1
-	done
-rise_queri_noduplicate=($(echo "${rise_queri[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
-
-awk -v d="${rise_queri_noduplicate[1]}" -F"," 'BEGIN { OFS = "," } {$13=d; print}' ba10.csv > ba11.csv
-awk -v d="${rise_queri_noduplicate[2]}" -F"," 'BEGIN { OFS = "," } {$14=d; print}' ba11.csv > ba12.csv
-awk -v d="${rise_queri_noduplicate[3]}" -F"," 'BEGIN { OFS = "," } {$15=d; print}' ba12.csv > ba13.csv
 
 }
 
+function trending {
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/trending`
+#extract the terminal output. extract top value query names, remove excess word and genrate a new list of stock to be checked
+echo "${output}" > "${disc}"/trending.txt
+
+#put it some arrays
+export trending_ticker=($(awk -F "\"*|\"*" '{print $1}' "${disc}"/trending.txt ))  #to check clumn number 0 or 1 
+export trending_wlcount=($(awk -F "\"*|\"*" '{print $2}' "${disc}"/trending.txt )) 
+
+#usage: trending [-h]
+#Tickers trending on Stocktwits
+#?????????????????????????????????????????????????????????????????????????????
+#? Ticker ? Watchlist Count ? Name                                           ?
+#?????????????????????????????????????????????????????????????????????????????
+#? RBLX   ? 57121           ? Roblox                                         ?
+#?????????????????????????????????????????????????????????????????????????????
+
+##to be added to popular + trend + trending array
+}
 
 function queries13_16 {
+#export to csv dunction doesnt work and also png so here is the trick.
+
+queri_limit=5 #num of output related query
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/queries -l ${queri_limit} --export cvs`
+#outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/queries -l ${rise_limit} --export png`
+#queri_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+#queri_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+#copy the png image to stock-name folder
+#mv $queri_pngpath "${dir}"/queri.png  
+
+#extract the terminal output. extract top value query names, remove excess word and genrate a new list of stock to be checked
+echo "${output}" > "${dir}"/queri.txt
+
+export queri_queri=($(awk -F "\"*|\"*" '{print $1}' "${dir}"/queri.txt ))  #to check clumn number 0 or 1 
+export queri_value=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/queri.txt )) 
 #usage: queries [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
 #Print top related queries with this stockÕs query. [Source: Google]
-
-#optional arguments:
 #  -l LIMIT, --limit LIMIT
                         #limit of top related queries to print. (default: 10)
-#  -h, --help            show this help message (default: False)
 #  --export {csv,json,xlsx,png,jpg,pdf,svg}
 #                        Export raw data into csv, json, xlsx and figure into png, jpg, pdf, svg (default: )
-
 # Top AMZN's related queries
 #????????????????????????????
 #? query            ? value ?
@@ -221,19 +290,6 @@ function queries13_16 {
 #? amzn stock       ? 100%  ?
 #????????????????????????????
 #? amzn price       ? 31%   ?
-queri_limit=5 #num of output related query
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/queries -l ${queri_limit} --export cvs`
-#outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export png`
-#rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-#rise_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-#mv $rise_pngpath "${dir}"/rise.png  
-
-#extract the terminal output. extract top value query names, remove excess word and genrate a new list of stock to be checked
-echo ${output} > "${dir}"/queri.txt
-
-queri_queri=($(awk -F "\"*|\"*" '{print $1}' "${dir}"/queri.txt ))  #to check clumn number 0 or 1 
-queri_value=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/queri.txt )) 
-
 #now i removee word like stock or price or duplicate to the sting in order to extract new stocks
 #skip title
 
@@ -242,14 +298,15 @@ queri_value=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/queri.txt ))
 #$ echo ${array[@]/$delete}
 #pippo
 #$ array=( "${array[@]/$delete}" ) #Quotes when working with string
-
+j=0
 for j in $queri_limit
 
 	do
-	#i remove stock form array fild and price and the name of the stock 
+	#I remove stock form array fild and price and the name of the stock 
 	queri_queri="${queri_queri#stock}"; queri_queri="${queri_queri#price}";  queri_queri=("${queri_queri/$i}");
 #if two follwing quari are the same after the revoval of price and stock do -> move array back 1
 	done
+	#eliminate possible array duplicate files
 queri_queri_noduplicate=($(echo "${queri_queri[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
 
 #add the TOP 3 to the table and the others are int the quei_queri<-nodup to be used for further checks
@@ -257,17 +314,23 @@ awk -v d="${queri_queri_noduplicate[1]}" -F"," 'BEGIN { OFS = "," } {$13=d; prin
 awk -v d="${queri_queri_noduplicate[2]}" -F"," 'BEGIN { OFS = "," } {$14=d; print}' ba15.csv > ba16.csv
 awk -v d="${queri_queri_noduplicate[3]}" -F"," 'BEGIN { OFS = "," } {$15=d; print}' ba16.csv > ba17.csv
 
-#queri_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-#output to csv doest work so :
 
+#those can be used later to discover new stocks 
 }
 
 function hist {
+number=50 #to make some calculation for the api calls.
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/hist -s "${1month}" -e "${today}" -n ${number} --export png`
+hist_pngpath=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/hist_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+mv "$hist_pngpath" "${dir}"/hist.png 
+
+#maybe we need to genarate the plot with pyhton and save it to he daylyreport. the terminal does it but csv or png.
+
+#require load of ticker
 #no table output.
 
 #the freeversion has 1000 per month this men that i a create 10 accont and switch the apy we have unlimited apy calls.
 #Starter sentiment investor
-#MOST POPULAR
 #$19.99 	240 yearly
 #   per month
 #10,000 API Calls per month+Hourly metrics and breakdowns+Historical Data+Wesokets
@@ -277,31 +340,26 @@ function hist {
 #AHI is a measure of how much people are talking about a stock on social media. It is calculated by dividing the total number of mentions for the chosen stock on a social network by the mean number of mentions any stock receives on that social medium.
 #RHI (Relative Hype Index)
 #RHI is a measure of whether people are talking about a stock more or less than usual, calculated by dividing the mean AHI for the past day by the mean AHI for for the past week for that stock.
-number=50 #to make some calculation for the api calls.
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/hist -s ${1month} -e ${today}  -n ${number} --export png`
-hist_pngpath=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/hist_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-mv $hist_pngpath "${dir}"/hist.png 
-
-#maybe we need to genarate the plot with pyhton and save it to he daylyreport. the terminal does it but csv or png.
 
 }
 
 function popular {
+#no table output
+
 limit=15 #the bigger the better)
 number=50 #post number for every subs
 subreddits="pennystocks, RobinHoodPennyStocks, Daytrading, StockMarket, stocks, investing, wallstreetbets" #can be changed
 #very time long
 
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/popular -l ${limit} -n ${number} -s s{subreddit}`
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/popular -l ${limit} -n ${number} -s ${subreddit}`
 #there is no export function so i do it:
 
 
-echo ${output} > "${dir}"/popular.txt
+echo "${output}" > "${disc}"/popular.txt
 
-pop_mentions=($(awk -F "\"*|\"*" '{print $1}' "${dir}"/popular.txt ))  #to check clumn number 0 or 1 
-pop_ticker=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/popular.txt ))
+export pop_mentions=($(awk -F "\"*|\"*" '{print $1}' "${disc}"/popular.txt ))  #to check clumn number 0 or 1 
+export pop_ticker=($(awk -F "\"*|\"*" '{print $2}' "${disc}"/popular.txt ))
 
-#if a thicker is the discover section i add 
 #pop_ticker can be used insted of gianers or a combination
 
 #I restrict the interest on only the ticer name since the other data will be produced in the anlyis
@@ -310,10 +368,8 @@ pop_ticker=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/popular.txt ))
 #????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
 #? 57       ? GME    ? GameStop Corp.                                         ? Consumer Cyclical    ? 129.34 ? 2.52%   ? 8.15%      ? https://finviz.com/quote.ashx?t=GME  ?
 #???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
-#Popular
 #usage: popular [-l LIMIT] [-n NUM] [-s S_SUBREDDIT] [-h]
 #The current popular tickers on Reddit
-4
 #optional arguments:
 #  -l LIMIT, --limit LIMIT
 #                        limit of top tickers to retrieve (default: 10)
@@ -323,32 +379,24 @@ pop_ticker=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/popular.txt ))
 }
 
 function regions6-10 {
-#usage: regions [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
-#Plot bars of regions based on stockÕs interest. [Source: Google]
 
-#optional arguments:
-#  -l LIMIT, --limit LIMIT
-#                        limit of regions to plot that show highest interest. (default: 10)
-#  -h, --help            show this help message (default: False)
-#  --export {csv,json,xlsx,png,jpg,pdf,svg}
-#                        Export raw data into csv, json, xlsx and figure into png, jpg, 
 export region_limit=3
 #Saved file: /home/gabriele/GamestonkTerminal/exports/common/behavioural_analysis/regions_20220305_155918.csv
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/regions -l ${regions_limit} --export cvs`
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/regions -l ${regions_limit} --export png`
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/regions -l ${region_limit} --export cvs`
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/regions -l ${region_limit} --export png`
 
 region_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/regions_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 region_pngpath=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/regions_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 
-mv $region_pngpath "${dir}"/region.png  
+mv "$region_pngpath" "${dir}"/region.png  
 
-region_geoname=($(awk -F "\"*,\"*" '{print $1}' ${region_path} ))
-region_interest=($(awk -F "\"*,\"*" '{print $2}' ${region_path} ))
+export region_geoname=($(awk -F "\"*,\"*" '{print $1}' "${region_path}" ))
+export region_interest=($(awk -F "\"*,\"*" '{print $2}' "${region_path}" ))
 
-[[ ! -z "$region_interest[-1]" ]] || $region_interest[-1]=-9999
-[[ ! -z "$region_interest[-2]" ]] || $region_interest[-2]=-9999
-[[ ! -z "$region_geoname[-1]" ]] || $region_geoname[-1]=-9999
-[[ ! -z "$region_geoname[-2]" ]] || $region_geoname[-2]=-9999
+[[ -n "${region_interest[-1]}" ]] || region_interest[-1]=-9999
+[[ -n "${region_interest[-2]}" ]] || region_interest[-2]=-9999
+[[ -n "${region_geoname[-1]}" ]] || region_geoname[-1]=-9999
+[[ -n "${region_geoname[-2]}" ]] || region_geoname[-2]=-9999
 
 #the last of the array is has the most interest
 
@@ -358,14 +406,23 @@ awk -v d="${region_interest[-1]}" -F"," 'BEGIN { OFS = "," } {$10=d; print}' ba7
 awk -v d="${region_geoname[-2]}" -F"," 'BEGIN { OFS = "," } {$11=d; print}' ba8.csv > ba9.csv
 awk -v d="${region_interest[-2]}" -F"," 'BEGIN { OFS = "," } {$12=d; print}' ba9.csv > ba10.csv
 
+#usage: regions [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
+#Plot bars of regions based on stockÕs interest. [Source: Google]
+
+#optional arguments:
+#  -l LIMIT, --limit LIMIT
+#                        limit of regions to plot that show highest interest. (default: 10)
+#  -h, --help            show this help message (default: False)
+#  --export {csv,json,xlsx,png,jpg,pdf,svg}
+#                        Export raw data into csv, json, xlsx and figure into png, jpg, 
 }
 
 function bullbear1 { #depend on a stock i passaed
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/bullbear/../quit/exit`
-echo ${output} > "${rootpath}"/outfile.txt
+echo "${output}" > "${dir}"/bullbear.txt
 #need few safty check on the psoition of the indexise. if it fails the psoision is shifted
-index_bull=$(grep -Eo "[0-9]*.[0-9]" "${rootpath}"/outfile.txt)
-index_bear=$(grep -Eo "[0-9]*.[0-9]" "${rootpath}"/outfile.txt)
+index_bull=$(grep -Eo "[0-9]*.[0-9]" "${dir}"/bullbear.txt)
+index_bear=$(grep -Eo "[0-9]*.[0-9]" "${dir}"/bullbear.txt)
 
 if [ -z "$index_bull" ]
 then
@@ -375,26 +432,50 @@ else
 	echo "${i} is bullish at ${index_bull} and bearish at ${index_bear}\n"
 	echo "$i,${index_bull},${index_bear}" >> ba1.csv
 fi
+
+#usage: bullbear [-h]
+#Shows the bull/bear sentiment for the loaded ticker based on last 30 messages on the board. Also prints the watchlist_count. Source: Stocktwits
+
+#2022 Feb 16, 10:07 (?) /stocks/ba/ $ bullbear
+#Watchlist count: 381324
+#Last 16 sentiment messages:
+#Bullish 87.5%
+#Bearish 12.5%
 }
 
-#python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/bullbear/../quit/exit 2> ~/GamestonkTerminal/file.txt
-
-#echo=$bullbear[@]
-
-#bullbear=$(python ~/GamestonkTerminal/terminal.py <<END
-#/stocks/load "${i}"/ba/bullbear/../quit/exit
-#END
-#)
-
-#ba tabele csv
-#1sotck i,2${index_bull},3${index_bear},4$headline_sentiment[0],5ScS,6AcS,7infer_highpositivesent,8infer_highnegativesent,9region_geoname#1,10region_interest#1,11region_geoname#2,12region_interest#2,13 rise quari1,14risequari2,15risequary3,16mention_value,17queri_queri_noduplicate[1],18queri_queri_noduplicate[2],19queri_queri_noduplicate[3],20
 
 function infer2_6 {
+
+export infer_limit=100  #limit of latest tweets to infer from. (default: 100)
+
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/infer -l ${infer_limit}`
+
+#infer_fromday=$(echo "$output" | grep -Eo  "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" | head -n 1)
+#[[ -n "$infer_fromday" ]] || infer_fromday=-9999
+#infer_today=$(echo "$output" | grep -Eo  "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" | head -n 2)
+#[[ -n "$infer_fromday" ]] || infer_fromday=-9999
+#infer_fromtime=$(echo "$output" | grep -Eo  "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" | head -n 1)
+#[[ -n "$infer_fromtime" ]] || infer_fromtime=-9999
+#infer_totime=$(echo "$output" | grep -Eo  "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" | head -n 2)
+#[[ -n "$infer_totime" ]] || infer_totime=-9999
+infer_ScSAAPL=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 1) #sum
+[[ -n "$infer_ScSAAPL" ]] || infer_ScSAAPL=-9999
+infer_AcSAAPL=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 2) #average
+[[ -n "$infer_AcSAAPL" ]] || infer_AcSAAPL=-9999
+infer_highpostivesent=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 3) #percentage
+[[ -n "$infer_highpostivesent" ]] || infer_highpostivesent=-9999
+infer_highnegativesent=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 4)
+[[ -n "$infer_highnegativesent" ]] || infer_highnegativesent=-9999
+
+
+#add column to ba genral csv file 
+awk -v d="$infer_ScSAAPL" -F"," 'BEGIN { OFS = "," } {$5=d; print}' ba2.csv > ba3.csv
+awk -v d="$infer_AcSAAPL" -F"," 'BEGIN { OFS = "," } {$6=d; print}' ba3.csv > ba4.csv
+awk -v d="$infer_highpostivesent" -F"," 'BEGIN { OFS = "," } {$7=d; print}' ba4.csv > ba5.csv
+awk -v d="$infer_highnegativesent" -F"," 'BEGIN { OFS = "," } {$8=d; print}' ba5.csv > ba6.csv
+
+echo "$output" >  "${dir}"/twittersent.txt
 ###to ber run every hour to have relyable result to study
-
-#infer [-l LIMIT] [-h] [--export {csv,json,xlsx}]
-
-export ifner_limit=100  #limit of latest tweets to infer from. (default: 100)
 
 #From: 2022-02-19 17:08:20
 #To:   2022-02-19 18:04:18
@@ -405,42 +486,7 @@ export ifner_limit=100  #limit of latest tweets to infer from. (default: 100)
 #Of the last 100 tweets, 45.00 % had a higher positive sentiment
 #Of the last 100 tweets, 18.00 % had a higher negative sentiment
 
-
-
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/infer -l ${infer_limit}`
-
-infer_fromday=$(echo "$output" | grep -Eo  "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" | head -n 1)
-[[ ! -z "$infer_fromday" ]] || $infer_fromday=-9999
-
-infer_today=$(echo "$output" | grep -Eo  "[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]" | head -n 2)
-[[ ! -z "$infer_fromday" ]] || $infer_fromday=-9999
-
-infer_fromtime=$(echo "$output" | grep -Eo  "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" | head -n 1)
-[[ ! -z "$infer_fromtime" ]] || $infer_fromtime=-9999
-
-infer_totime=$(echo "$output" | grep -Eo  "[0-9][0-9]:[0-9][0-9]:[0-9][0-9]" | head -n 2)
-[[ ! -z "$infer_totime" ]] || $infer_totime=-9999
-
-infer_ScSAAPL=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 1) #sum
-[[ ! -z "$infer_ScSAAPL" ]] || $infer_ScSAAPL=-9999
-
-infer_AcSAAPL=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 2) #average
-[[ ! -z "$infer_AcSAAPL" ]] || $infer_AcSAAPL=-9999
-
-infer_highpostivesent=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 3) #percentage
-[[ ! -z "$infer_highpostivesent" ]] || $infer_highpostivesent=-9999
-
-infer_highnegativesent=$(echo "$output" | grep -Eo  "[0-9]*.[0-9]*" | head -n 4)
-[[ ! -z "$infer_highnegativesent" ]] || $infer_highnegativesent=-9999
-
-
-#add column to ba genral csv file 
-awk -v d="$infer_ScSAAPL" -F"," 'BEGIN { OFS = "," } {$5=d; print}' ba2.csv > ba3.csv
-awk -v d="$infer_AcSAAPL" -F"," 'BEGIN { OFS = "," } {$6=d; print}' ba3.csv > ba4.csv
-awk -v d="$infer_highpostivesent" -F"," 'BEGIN { OFS = "," } {$7=d; print}' ba4.csv > ba5.csv
-awk -v d="$infer_highnegativesent" -F"," 'BEGIN { OFS = "," } {$8=d; print}' ba5.csv > ba6.csv
-
-echo "$output"
+#infer [-l LIMIT] [-h] [--export {csv,json,xlsx}]
 
 }
 
@@ -449,17 +495,20 @@ function sentiment {
 export days=2  #number of days 1-6 in the past to extract tweets. (default: 6)
 export limitsent=10 #limit of tweets to extract per hour. (default: 15) 10-60
 #find out what is AAPL sentiment.
-#usage: sentiment [-l LIMIT] [-d N_DAYS_PAST] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
 
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/sentiment -l ${limitsent} -dcommon/behavioural_analysis/sentiment ${days} --export csv/../quit/exit`
+#useful only if we konw how to threat this csv data
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/sentiment -l ${limitsent} -d ${days} --export csv/exit`
 sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/sentiment_[0-9]*_[0-9]*.csv" | head -n 1)
-##cp $sentiment_path ${HOME}/GamestonkTerminal/report
-
-output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/sentiment -l ${limitsent} -dcommon/behavioural_analysis/sentiment ${days} --export jpg/../quit/exit`
+#plots the snetiment :
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/sentiment -l ${limitsent} -d ${days} --export jpg/exit`
 sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/sentiment_[0-9]*_[0-9]*.jpg" | head -n 1)
-mv $sentiment_path  "{$dir}"/sentiment.jpg
+copy png plot of sentiment to stock folder
+mv "$sentiment_path" "{$dir}"/sentiment.jpg
+
+#csv file:
 #254,4,2022-03-03 12:23:07,RT @JasonMaPhD: $TSLA will be $2000 this year!,0.0,0.0,0.0,1.0,-0.4384,1,3,3,2022-03-03 12:23:07
 
+#usage: sentiment [-l LIMIT] [-d N_DAYS_PAST] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
 #need to investigate vader polarity score and vader sentiment quest
 }
 
@@ -471,44 +520,60 @@ outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load "${i}"/headlin
 headline_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/headlines_[0-9]*_[0-9]*.csv" | head -n 1)
 headline_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/headlines_[0-9]*_[0-9]*.png" | head -n 1)
 
-mv $headline_pngpath  "{$dir}"/headline.png
+mv "$headline_pngpath" "{$dir}"/headline.png
 
-
-headline_date=($(awk -F "\"*,\"*" '{print $1}' ${headline_path} ))
-headline_sentiment=($(awk -F "\"*,\"*" '{print $2}' ${headline_path} ))
+headline_date=($(awk -F "\"*,\"*" '{print $1}' "${headline_path}" ))
+headline_sentiment=($(awk -F "\"*,\"*" '{print $2}' "${headline_path}" ))
 #add column to ba1 with sentiment
-awk -v d="$headline_sentiment[0]" -F"," 'BEGIN { OFS = "," } {$4=d; print}' ba1.csv > ba2.csv
+awk -v d="${headline_sentiment[0]}" -F"," 'BEGIN { OFS = "," } {$4=d; print}' ba1.csv > ba2.csv
 
 #for now i will only take the the present sentiment of  the day an not use the other daa but a function to fina a whaited mean value is needed.
 
 #actually thsi is not a good idea to takee only one value  but ok
 #https://stackoverflow.com/questions/9506810/add-column-to-end-of-csv-file-using-awk-in-bash-script
-#need a foor loop to do the formual
+#we would need an averege here to put in the table
+
+#usage: headlines [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
+#FinBrain collects the news headlines from 15+ major financial news sources on a daily basis and analyzes them to generate sentiment scores for more than 4500 US stocks.FinBrain Technologies develops deep learning algorithms for financial analysis and prediction, which currently serves traders from more than 150 countries all around the world. [Source: https://finbrain.tech]
+#  --export {csv,json,xlsx,png,jpg,pdf,svg}
+#                        Export raw data into csv, json, xlsx and figure into png, jpg, pdf, svg (default: )
+#FinBrain Ticker Sentiment
+#??????????????????????????
+#?            ? Sentiment ?
+#??????????????????????????
+#? 2022-02-03 ? 0.107     ?
+#??????????????????????????
+#? 2022-02-04 ? 0.354     ?
 }
 
 
+#output=$((your command here) 2> &1)
+#python yourscript 2> return_file
 
+#to be run once a day to generate disc array. that here is represented by gainers
+mkdir "${HOME}"/dailyreport/disc/"$oggi"
 
+gainers
+trend 
+trending 
+popular
+#do someting to join the genarated arrays. later push them to the for statement
 
 export i=0
-gainers_record2=($(awk -F "\"*,\"*" '{print $2}' ${path} ))
 for i in ${gainers_record2[@]:1} #im using gaines simbol as the best stock but we will wuse a more refined list
 do
 
-mkdir ${HOME}/dailyreport/"$i"
+mkdir "${HOME}"/dailyreport/"$i"
 
 #ba
 bullbear1
-#sentiment
+sentiment
 headlines2
 infer2_6
 regions6_10
 rise10_13
 mention13_14
 queri14_17
-#output=$((your command here) 2> &1)
-
-#python yourscript 2> return_file
 
 
 
@@ -517,7 +582,8 @@ queri14_17
 
 
 
-#mention part
+
+
 
 
 
