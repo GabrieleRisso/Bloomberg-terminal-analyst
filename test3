@@ -3,6 +3,11 @@
 app="/GamestonkTerminal"
 rootpath="$PWD"
 
+#variables
+export today=$(date -d "today" +"%Y/%m/%d")
+export 1month=$(date -d "30 days ago" +"%Y/%m/%d")
+export 3montago=$(date -d "90 days ago" +"%Y/%m/%d")
+
 #move this script in game stonkterminal folder. make it executbale with "chmod +x stocksh"
 
 #limitgain=5 #limit the number of gainers stocks displayed
@@ -44,13 +49,39 @@ path=$(echo "$lines" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/disco
 
 echo "$path"
 
-
+#nasdaq	10	2	10	810	75.21%
+#nasdaq	10	2	5	618	57.38%
+#nasdaq	10	3	10	358	33.24%
+#nasdaq	10	3	5	262	24.33%
+#amex	10	2	10	70	49.30%
+#amex	10	2	5	62	43.66%
+#nasdaq	100	2	10	271	25.16%
+#nasdaq	100	2	5	196	18.20%
+#nasdaq	100	3	10	97	9.01%
+#nasdaq	10	2	10	810	75.21%
+#nasdaq	10	2	5	618	57.38%
+#nasdaq	10	3	10	358	33.24%
+#nasdaq	10	3	5	262	24.33%
 
 
 
 
 
 #behiviural analisis 
+#Bypass any paywall,
+
+#https://12ft.io/<URL>
+
+
+#https://github.com/CardosoJr/investing/tree/9cc20872c83037c2f7a17c62b47d3b4798f3a46f/Extractors/news
+#gnews
+#twitter
+#reddit
+#finhub (finnhub.io)
+#financialmodelingprep.com
+#newsapi.org
+#stocktwits.com
+#finbrain.tech
 
 #Bullbear -> done
 #Getdd
@@ -71,7 +102,7 @@ echo "$path"
 #Trend
 #Trending
 #Watchlist
-#Wsb
+#Wsb #not really intresting for now-
 
 #the ba that require load of stock:
 
@@ -148,8 +179,8 @@ rise_limit=6
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export cvs`
 outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export png`
 
-rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-rise_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+rise_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 
 mv $rise_pngpath "${dir}"/rise.png  
 
@@ -158,9 +189,9 @@ rise_queri=($(awk -F "\"*,\"*" '{print $1}' ${rise_path} ))  #to check clumn num
 
 #now i removee word like stock or price or duplicate to the sting in order to extract new stocks
 #skip title
-for i in {1 .. $rise_limit}
+for j in {1 .. $rise_limit}
 	do
-	rise_queri[$i]="${ries_queri#stock}"; rise_queri="${rise_queri#price}"
+	rise_queri="${ries_queri#stock}"; rise_queri="${rise_queri#price}" ; rise_queri=("${rise_queri/$i}");
 #if two follwing quari are the same after the revoval of price and stock do -> move array back 1
 	done
 rise_queri_noduplicate=($(echo "${rise_queri[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
@@ -172,7 +203,7 @@ awk -v d="${rise_queri_noduplicate[3]}" -F"," 'BEGIN { OFS = "," } {$15=d; print
 }
 
 
-function queries to do but optional{
+function queries13_16 {
 #usage: queries [-l LIMIT] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}]
 #Print top related queries with this stockÕs query. [Source: Google]
 
@@ -190,16 +221,105 @@ function queries to do but optional{
 #? amzn stock       ? 100%  ?
 #????????????????????????????
 #? amzn price       ? 31%   ?
-
 queri_limit=5 #num of output related query
-
 output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/queries -l ${queri_limit} --export cvs`
+#outputpng=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/rise -l ${rise_limit} --export png`
+#rise_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+#rise_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+#mv $rise_pngpath "${dir}"/rise.png  
+
+#extract the terminal output. extract top value query names, remove excess word and genrate a new list of stock to be checked
+echo ${output} > "${dir}"/queri.txt
+
+queri_queri=($(awk -F "\"*|\"*" '{print $1}' "${dir}"/queri.txt ))  #to check clumn number 0 or 1 
+queri_value=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/queri.txt )) 
+
+#now i removee word like stock or price or duplicate to the sting in order to extract new stocks
+#skip title
+
+#array=(pluto pippo)
+#delete=pluto
+#$ echo ${array[@]/$delete}
+#pippo
+#$ array=( "${array[@]/$delete}" ) #Quotes when working with string
+
+for j in $queri_limit
+
+	do
+	#i remove stock form array fild and price and the name of the stock 
+	queri_queri="${queri_queri#stock}"; queri_queri="${queri_queri#price}";  queri_queri=("${queri_queri/$i}");
+#if two follwing quari are the same after the revoval of price and stock do -> move array back 1
+	done
+queri_queri_noduplicate=($(echo "${queri_queri[@]}" | tr ' ' '\n' | sort -u | tr '\n' ' '))
+
+#add the TOP 3 to the table and the others are int the quei_queri<-nodup to be used for further checks
+awk -v d="${queri_queri_noduplicate[1]}" -F"," 'BEGIN { OFS = "," } {$13=d; print}' ba14.csv > ba15.csv
+awk -v d="${queri_queri_noduplicate[2]}" -F"," 'BEGIN { OFS = "," } {$14=d; print}' ba15.csv > ba16.csv
+awk -v d="${queri_queri_noduplicate[3]}" -F"," 'BEGIN { OFS = "," } {$15=d; print}' ba16.csv > ba17.csv
+
 #queri_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/query_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 #output to csv doest work so :
-#extract the terminal output. extract top value query names, remove excess word and genrate a new list of stock to be checked
+
+}
+
+function hist {
+#no table output.
+
+#the freeversion has 1000 per month this men that i a create 10 accont and switch the apy we have unlimited apy calls.
+#Starter sentiment investor
+#MOST POPULAR
+#$19.99 	240 yearly
+#   per month
+#10,000 API Calls per month+Hourly metrics and breakdowns+Historical Data+Wesokets
+#usage: hist [-s START] [-e END] [-n NUMBER] [-h] [--export {csv,json,xlsx,png,jpg,pdf,svg}] [--raw] [-l LIMIT]
+#Plot historical sentiment data of RHI and AHI by hour. Source: [Sentiment Investor]
+#AHI (Absolute Hype Index)
+#AHI is a measure of how much people are talking about a stock on social media. It is calculated by dividing the total number of mentions for the chosen stock on a social network by the mean number of mentions any stock receives on that social medium.
+#RHI (Relative Hype Index)
+#RHI is a measure of whether people are talking about a stock more or less than usual, calculated by dividing the mean AHI for the past day by the mean AHI for for the past week for that stock.
+number=50 #to make some calculation for the api calls.
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/hist -s ${1month} -e ${today}  -n ${number} --export png`
+hist_pngpath=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/hist_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+mv $hist_pngpath "${dir}"/hist.png 
+
+#maybe we need to genarate the plot with pyhton and save it to he daylyreport. the terminal does it but csv or png.
+
+}
+
+function popular {
+limit=15 #the bigger the better)
+number=50 #post number for every subs
+subreddits="pennystocks, RobinHoodPennyStocks, Daytrading, StockMarket, stocks, investing, wallstreetbets" #can be changed
+#very time long
+
+output=`python ~/GamestonkTerminal/terminal.py /stocks/ba/load ${i}/popular -l ${limit} -n ${number} -s s{subreddit}`
+#there is no export function so i do it:
 
 
+echo ${output} > "${dir}"/popular.txt
 
+pop_mentions=($(awk -F "\"*|\"*" '{print $1}' "${dir}"/popular.txt ))  #to check clumn number 0 or 1 
+pop_ticker=($(awk -F "\"*|\"*" '{print $2}' "${dir}"/popular.txt ))
+
+#if a thicker is the discover section i add 
+#pop_ticker can be used insted of gianers or a combination
+
+#I restrict the interest on only the ticer name since the other data will be produced in the anlyis
+#????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+#? Mentions ? Ticker ? Company                                                ? Sector               ? Price  ? Change  ? Perf Month ? URL                                  ?
+#????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+#? 57       ? GME    ? GameStop Corp.                                         ? Consumer Cyclical    ? 129.34 ? 2.52%   ? 8.15%      ? https://finviz.com/quote.ashx?t=GME  ?
+#???????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????
+#Popular
+#usage: popular [-l LIMIT] [-n NUM] [-s S_SUBREDDIT] [-h]
+#The current popular tickers on Reddit
+4
+#optional arguments:
+#  -l LIMIT, --limit LIMIT
+#                        limit of top tickers to retrieve (default: 10)
+#  -n NUM, --num NUM     number of posts retrieved per sub reddit. (default: 50)
+#  -s S_SUBREDDIT, --sub S_SUBREDDIT
+#                        subreddits to look for tickers, e.g. pennystocks,stocks. Default: pennystocks, RobinHoodPennyStocks, Daytrading, StockMarket, stocks, investing, wallstreetbets (default: None)
 }
 
 function regions6-10 {
@@ -267,7 +387,7 @@ fi
 #)
 
 #ba tabele csv
-#1sotck i,2${index_bull},3${index_bear},4$headline_sentiment[0],5ScS,6AcS,7infer_highpositivesent,8infer_highnegativesent,9region_geoname#1,10region_interest#1,11region_geoname#2,12region_interest#2,13 rise quari1,14risequari2,15risequary3,16mention_value
+#1sotck i,2${index_bull},3${index_bear},4$headline_sentiment[0],5ScS,6AcS,7infer_highpositivesent,8infer_highnegativesent,9region_geoname#1,10region_interest#1,11region_geoname#2,12region_interest#2,13 rise quari1,14risequari2,15risequary3,16mention_value,17queri_queri_noduplicate[1],18queri_queri_noduplicate[2],19queri_queri_noduplicate[3],20
 
 function infer2_6 {
 ###to ber run every hour to have relyable result to study
@@ -385,6 +505,7 @@ infer2_6
 regions6_10
 rise10_13
 mention13_14
+queri14_17
 #output=$((your command here) 2> &1)
 
 #python yourscript 2> return_file
