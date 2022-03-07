@@ -1,1 +1,1 @@
-# stock
+# bash wrapper for gamestonkterminal
