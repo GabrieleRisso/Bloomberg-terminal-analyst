@@ -1,0 +1,213 @@
+#!/bin/bash
+
+Analysis
+Balance x
+Cal x
+Cash x
+Dcf x
+Divs x
+Earnings x
+Fmp x
+Fraud x
+Hq 
+Income x
+Info x
+Key x
+Mgmt x 
+Mktcap x
+Overview x
+Score x
+Shrs x
+Splits x
+Sust x
+Warnings x
+Web
+
+
+source ~/anaconda3/etc/profile.d/conda.sh
+conda activate gst
+i="TSLA"
+dir="/home/gabriele/stock"
+mkdir -p /home/gabriele/stock/fa/
+
+function balance() {
+limit=12
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/balance -l ${limit}/exit")
+IFS=''
+#output=$(echo "$output" | sed -n '/^.\{60\}/p')
+
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > /home/gabriele/stock/fa/pass9.txt
+}
+
+
+function earnings() {
+limit=12
+#Shows earnings for the loaded ticker, selectable as yearly or quarterly; includes Estimated, Reported, and Surprise EPS results. [Source: Alpha Vantage]
+
+savedfile=""${dir}"/fa/earnings3yAV.txt"x
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/earnings -l ${limit}/exit")
+IFS=''
+
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+
+}
+
+function analysis() {
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/analysis/exit")
+savedfile=""${dir}"/fa/SecFilingaAnalysis.txt"
+
+#we need to remove header and footer: 
+echo "$output" > "$savedfile"
+
+}
+
+function cal() {
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/cal/exit")
+savedfile=""${dir}"/fa/calendarEarningsAV.txt"
+
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+
+}
+
+function cashflow{
+limit=4
+#quarter is enabled
+output=$(./terminal.py "/stocks/load "${1}"/fa/cash -l $limit -q/exit")
+savedfile=""${dir}"/fa/cashflow.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+function dcf {
+#to be defined and also the other arguments
+limit=4
+yersofpred=1
+#quarter is enabled
+output=`python ~/GamestonkTerminal/terminal.py /stocks/load "${i}"/fa/dcf -l $limit -p $yearsofpred -q/exit`
+discountedcashflow_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/fundamental_analysis/"${i}" [0-9]*_[0-9][0-9]-[0-9][0-9].xlsx" | head -n 1)
+#echo "$output" >  "${dir}"/fa/SECfiling.txt
+mv "${discountedcashflow_path}" "${dir}"/fa/discountedcashflowAV.xlsx
+
+}
+
+function divs{
+limit=16
+#quarter is enabled
+output=$(./terminal.py "/stocks/load "${1}"/fa/divs -l $limit/exit")
+savedfile=""${dir}"/fa/divs.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+function fraud{
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/fraud/exit")
+savedfile=""${dir}"/fa/fraud.txt"
+echo "$output" > "$savedfile"
+}
+
+
+function income{
+limit=16
+#quarter is enabled
+output=$(./terminal.py "/stocks/load "${1}"/fa/income -l $limit -q/exit")
+savedfile=""${dir}"/fa/income.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+
+function info{
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/info/exit")
+savedfile=""${dir}"/fa/info.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+
+function key{
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/key/exit")
+savedfile=""${dir}"/fa/key.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+
+function mgmt{
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/mgmt/exit")
+savedfile=""${dir}"/fa/managementteam.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+
+function mktcap{ #not in my terminal
+start="2019-03-03"
+output=$(./terminal.py "/stocks/load "${1}"/fa/mktcap -s "$start" --export png/exit")
+savedfile=""${dir}"/fa/info.txt"
+
+cash_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/fundamental_analysis/mktcap_[0-9]*_[0-9]*.png" | head -n 1)
+mv "${cash_path}" "${dir}"/fa/mktcap.png
+}
+
+
+function overview{
+
+output=$(./terminal.py "/stocks/load "${1}"/overview/info/exit")
+savedfile=""${dir}"/fa/overview.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+function score{
+
+output=$(./terminal.py "/stocks/load "${1}"/score/info/exit")
+savedfile=""${dir}"/fa/score.txt"
+echo "$output" > "$savedfile"
+}
+
+function shrs{
+
+output=$(./terminal.py "/stocks/load "${1}"/shrs/info/exit")
+savedfile=""${dir}"/fa/shareholders.txt"
+echo "$output"  > "$savedfile"
+}
+
+
+function splits{ #not in my terminal
+output=$(./terminal.py "/stocks/load "${1}"/fa/splits --export png/exit")
+savedfile=""${dir}"/fa/splits.txt"
+
+cash_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/fundamental_analysis/splits_[0-9]*_[0-9]*.png" | head -n 1)
+mv "${cash_path}" "${dir}"/fa/splits.png
+}
+
+function sust{
+
+output=$(./terminal.py "/stocks/load "${1}"/sust/info/exit")
+savedfile=""${dir}"/fa/sust.txt"
+(echo "$output" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "$savedfile"
+}
+
+
+
+function warnings{
+
+output=$(./terminal.py "/stocks/load "${1}"/fa/warnings -d/exit")
+savedfile=""${dir}"/fa/warnings.txt"
+echo "$output"  > "$savedfile"
+}
+
+
+#cat *.txt > all.txt
+
+
+
+
+
+
+
+
+
+
+
