@@ -2,10 +2,22 @@
 
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate gst
-#i="GOGL"
-dir="$HOME/dailyreport/$1/LSTM"
-mkdir -p ${HOME}/dailyreport/$1/LSTM/
+#i="SGLY"
+dir="$HOME/dailyreport/$1/pred"
+mkdir -p ${HOME}/dailyreport/$1/pred/
 begdate="2012-01-01"
+
+function knn() {
+#python $HOME/GamestonkTerminal/terminal.py "/stocks/load -f ${1}_norm_ds.csv -t mydata/pred/knn -d 4 -t 0.3 -i 11 -n 20/"
+python $HOME/GamestonkTerminal/terminal.py "/stocks/load -f ${1}_ds.csv -t mydata/pred/knn -d 2 -t 0.4 -i 5 -n 15/"
+
+
+}
+function rnn() {
+
+python $HOME/GamestonkTerminal/terminal.py "/stocks/load -f ${1}_ds.csv -t mydata/pred/rnn -d 3 -t 0.3 -i 20 -n 842 --lr 0.00005/"
+
+}
 
 function lstm() {
 
@@ -26,8 +38,7 @@ lr=0.00005
 
 
 python $HOME/GamestonkTerminal/terminal.py << END_SCRIPT
-/custom/load ${1}_norm_dataset.csv/pred/lstm -d $day  -l 1 -i $input --xla_cpu --xla_gpu --force_gpu_allow_growth true --export csv/../exit
-time.sleep(60000)
+/custom/load ${1}_norm_dataset.csv/pred/lstm -d $day  -l 1 -i $input --xla_cpu --xla_gpu --force_gpu_allow_growth true --export csv/../
 END_SCRIPT
 
 #usage: lstm [-d N_DAYS] [-i N_INPUTS] [--epochs N_EPOCHS] [-e S_END_DATE]
@@ -62,16 +73,16 @@ END_SCRIPT
 
 
 }
-
-
 function prepro() { #still has a missin value in foist row
 
 python - << END_SCRIPT
 from sklearn import preprocessing
 import pandas as pd
-date = pd.read_csv('$dir/dataset.csv', usecols = [0])
-print(date)
-stock = pd.read_csv('$dir/dataset.csv', usecols = [1,2,3,4,5,6,7,8,9,10])
+date = pd.read_csv('$dir/${1}_ds.csv', usecols = [0,1])
+
+normal = pd.read_csv('$dir/${1}_ds.csv')
+
+stock = pd.read_csv('$dir/${1}_ds.csv', usecols = [2,3,4,5,6,7,8,9,10,11])
 scaler = preprocessing.MinMaxScaler() #use of min max normalization
 names = stock.columns
 d = scaler.fit_transform(stock)
@@ -84,18 +95,25 @@ scaled_df.head()
 scaled_df = scaled_df.join(date)
 df1 = scaled_df.pop('date') # remove column b and store it in df1
 scaled_df.insert(0, "date", df1)
+#df1 = scaled_df.pop('date') # remove column b and store it in df1
+#scaled_df.insert(0, "date", df2)
 
 scaled_df = scaled_df.iloc[1:]
-scaled_df.to_csv(r'$dir/${1}_norm_dataset.csv', index=False)
+normal = normal.iloc[1:]
+#del normal['Close']
+
+scaled_df.to_csv(r'$dir/${1}_norm_ds.csv', index=False)
+normal.to_csv(r'$dir/${1}_ds.csv', index=False)
+
 END_SCRIPT
 echo "end of post processing"
 
-mv $dir/${1}_norm_dataset.csv $HOME/GamestonkTerminal/custom_imports/
+cp $dir/${1}_norm_ds.csv $HOME/GamestonkTerminal/custom_imports/stocks/
+cp $dir/${1}_ds.csv $HOME/GamestonkTerminal/custom_imports/stocks/
+
 echo "moved to custom"
 }
-
-
-function joininonecsv {
+function joininonecsv() {
 
 touch /home/gabriele/stock/LSTM/dataset.csv
 wma_path=$(find $dir/ -type f -print | grep -Eo  "wma14_[0-9]*_[0-9]*.csv" | head -n 1)
@@ -131,23 +149,23 @@ merged_data = csv1.merge(csv2,on=["date"]).merge(csv5,on=["date"]).merge(csv3,on
 del merged_data['Unnamed: 0_x']
 del merged_data['Unnamed: 0_y']
 del merged_data['Adj Close_y']
-del merged_data['Adj Close_x']
+#del merged_data['Adj Close_x']
 del merged_data['Unnamed: 0']
 
+merged_data.rename(columns={'Adj Close_x': 'Close'},
+          inplace=True, errors='raise')
 
-
-merged_data.to_csv(r'$dir/dataset.csv', index=False)
+merged_data.to_csv(r'$dir/${1}_ds.csv', index=False)
 END_SCRIPT
 
 
 echo "data has been generated correctly"
 }
-
 function signal() {
 signal="10"
 fast="12"
 slow="26"
-output=$(./terminal.py "/stocks/load "${1}" -s $begdate/ta/macd -f "$fast" -s "$slow" --signal "$signal" --export csv/exit")
+output=$(./terminal.py "/stocks/load -t "${1}" -s $begdate/ta/macd -f "$fast" -s "$slow" --signal "$signal" --export csv/exit")
 
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/technical_analysis/macd_[0-9]*_[0-9]*.csv" | head -n 1)
 echo "${path}"
@@ -163,10 +181,10 @@ df['SIGNAL'] = df['MACDs_12_26_10'].shift(1)*(1-(2/(10+1))) + df['MACD_12_26_10'
 del df['MACDh_12_26_10']
 del df['MACDs_12_26_10']
 del df['MACD_12_26_10']
+
 df.to_csv(r'$dir/${macd_path}')
 END_SCRIPT
 }
-
 function lwr() {
 
 wma14_path=$(find $dir/ -type f -print | grep -Eo  "wma14_[0-9]*_[0-9]*.csv" | head -n 1)
@@ -182,8 +200,6 @@ del df['max']
 df.to_csv(r'$dir/${wma14_path}')
 END_SCRIPT
 }
-
-
 function mom() {
 
 sma10_path=$(find $dir/ -type f -print | grep -Eo  "sma10_[0-9]*_[0-9]*.csv" | head -n 1)
@@ -196,7 +212,6 @@ df['MOM'] = df['Adj Close'].shift(9) - df['Adj Close']
 df.to_csv(r'$dir/${sma10_path}')
 END_SCRIPT
 }
-
 function sma10(){ 
 
 #Moving Averages are used to smooth the data in an array to help eliminate noise and identify trends. The Simple
@@ -207,14 +222,13 @@ function sma10(){
 
 window="10"
 offset="0"
-output=$(./terminal.py "/stocks/load "${1}" -s $begdate/ta/sma -l "$window" -o "$offset" --export csv/exit")
+output=$(./terminal.py "/stocks/load -t "${1}" -s $begdate/ta/sma -l "$window" -o "$offset" --export csv/exit")
 
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/technical_analysis/sma10_[0-9]*_[0-9]*.csv" | head -n 1)
 echo "${path}"
 
 mv "${path}" "${dir}"/
 }
-
 function wma14(){
 
 #A Weighted Moving Average puts more weight on recent data and less on past data. This is done by multiplying
@@ -223,14 +237,13 @@ function wma14(){
 
 window="14"
 offset="0"
-output=$(./terminal.py "/stocks/load "${1}" -s $begdate/ta/wma -l "$window" -o "$offset" --export csv/exit")
+output=$(./terminal.py "/stocks/load -t "${1}" -s $begdate/ta/wma -l "$window" -o "$offset" --export csv/exit")
 
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/technical_analysis/wma14_[0-9]*_[0-9]*.csv" | head -n 1)
 echo "${path}"
 
 mv "${path}" "${dir}"/
 }
-
 function cci(){ 
 
 #The CCI is designed to detect beginning and ending market trends. The range of 100 to -100 is the normal trading
@@ -239,14 +252,13 @@ function cci(){
 
 len="10"
 #scalar="0.015"
-output=$(./terminal.py "/stocks/load "${1}" -s $begdate/ta/cci -l "$len" --export csv/exit")
+output=$(./terminal.py "/stocks/load -t "${1}" -s $begdate/ta/cci -l "$len" --export csv/exit")
 
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/technical_analysis/cci_[0-9]*_[0-9]*.csv" | head -n 1)
 echo "${path}"
 
 mv "${path}" "${dir}"/
 }
-
 function rsi(){ 
 
 #The Relative Strength Index (RSI) calculates a ratio of the recent upward price movements to the absolute price movement. The RSI ranges from 0 to 100. The RSI is
@@ -256,16 +268,13 @@ function rsi(){
 len="14"
 scalar="100"
 drift="1"
-output=$(./terminal.py "/stocks/load "${1}" -s $begdate/ta/rsi -l "$len" -s "$scalar" -d "$drift" --export csv/exit")
+output=$(./terminal.py "/stocks/load -t "${1}" -s $begdate/ta/rsi -l "$len" -s "$scalar" -d "$drift" --export csv/exit")
 
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/technical_analysis/rsi_[0-9]*_[0-9]*.csv" | head -n 1)
 echo "${path}"
 
 mv "${path}" "${dir}"/
 }
-
-
-
 function stoch(){ 
 
 
@@ -276,14 +285,13 @@ function stoch(){
 fast="10"
 slowd="10"
 slowk="10"
-output=$(./terminal.py "/stocks/load "${1}" -s $begdate/ta/stoch -k "$fast" -d "$slowd" --slowkperiod "$slowk" --export csv/exit")
+output=$(./terminal.py "/stocks/load -t "${1}" -s $begdate/ta/stoch -k "$fast" -d "$slowd" --slowkperiod "$slowk" --export csv/exit")
 
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/technical_analysis/stoch_[0-9]*_[0-9]*.csv" | head -n 1)
 echo "${path}"
 
 mv "${path}" "${dir}"/
 }
-
 function ad(){ 
 #The Accumulation/Distribution Line is similar to the On Balance Volume (OBV), which sums the
 #volume times +1/-1 based on whether the close is higher than the previous close. The
@@ -295,7 +303,7 @@ function ad(){
 #Line becomes flat while the price is still rising (or falling) then it signals an impending
 #flattening of the price.
 
-output=$(./terminal.py "/stocks/load "${1}"  -s $begdate/ta/ad --export csv/exit")
+output=$(./terminal.py "/stocks/load -t "${1}"  -s $begdate/ta/ad --export csv/exit")
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/technical_analysis/ad_[0-9]*_[0-9]*.csv" | head -n 1)
 echo "${path}"
 
@@ -314,10 +322,11 @@ mv "${path}" "${dir}"/
 #mom
 #ad "${1}"
 #cci "${1}"
-#joininonecsv
+#joininonecsv "${1}"
 #prepro "${1}"
-lstm "${1}"
-#test "${1}"
+#lstm
+#knn "${1}" 
+rnn "${1}"
 
 
 
