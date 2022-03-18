@@ -2,20 +2,23 @@
 source ~/anaconda3/etc/profile.d/conda.sh
 conda activate gst
 
-i="TSLA"
+echo " analisi sentimentale su $1"
+
+#i=$1
+#export i="GOGL"
 #move this script in game gmaestonkterminal folder. make it executbale with "chmod +x stocksh"
 
 #variables
-oggi=$( date -d "today" +"%d_%m_%Y")
+export oggi=$( date -d "today" +"%d_%m_%Y")
 echo "analisi comportamentale. torvi tutti i risultati delle stock nella cartella dailyreport."
 #folder where all the visualizable data (like plots and cool stuff is uploded to manual analysis)
 mkdir -p $HOME/dailyreport/$i/
 #folder where seific stock info is stored during the generation of the data
-dir="$HOME/dailyreport/$i"
+export dir="$HOME/dailyreport/$i"
 #generate the dicovery folder with inside it a daily folder whit name the current date 
 mkdir -p $HOME/dailyreport/disc/$oggi/
 #folder where the current discovered stocks will be outputted
-disc="$HOME/dailyreport/disc/$oggi"
+export disc="$HOME/dailyreport/disc/$oggi"
 
 
 
@@ -28,17 +31,17 @@ hour_start="0" #best is to find current time before the potntial buy to make a u
 number="10"
 
 #command
-output=$(./terminal.py "/stocks/load "${i}"/ba/trend -n ${number} --export csv/exit")
+output=$(./terminal.py "/stocks/ba/trend -n ${number} --export csv/exit")
 
 #find the path of the output file
 path=$(echo "$output" | grep -Eo  "$HOME/GamestonkTerminal/exports/stocks/behavioural_analysis/trend_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 #copy/move the file to daily/disc/folder
 echo "path is : "$path""
-mv "$path" $disc/
+[[ -n "$path" ]] && mv "$path" $disc/
 echo " trend ok"
-}
+} #to be run before market open at 9 in the morning
 function mentions () {
-mention_start="2018-01-01"
+mention_start="2019-01-01"
 
 #perform the command
 output=$(./terminal.py "/stocks/ba/load "${i}"/mentions --export csv/exit")
@@ -51,38 +54,31 @@ pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/commo
 echo "$path"
 echo "$pngpath"
 #move png plot to dailydisc/stockname/mention.png
-mv "$path" "${dir}"/
-mv "$pngpath" "${dir}"/
+[[ -n "$path" ]] && mv "$path" "${dir}"/
+[[ -n "$pngpath" ]] && mv "$pngpath" "${dir}"/
 echo "mentions ok"
 }
 function rise() {
 #rise_queri_noduplicate is good to add to discovery for good stuff to analize later. to do
 
-rise_limit=6
+rise_limit=10
 output=$(./terminal.py "/stocks/ba/load "${i}"/rise -l $rise_limit --export csv/exit")
-outputpng=$(./terminal.py "/stocks/ba/load "${i}"/rise -l $rise_limit --export png/exit")
+#outputpng=$(./terminal.py "/stocks/ba/load "${i}"/rise -l $rise_limit --export png/exit")
 
 #path to files
 path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
-pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
+#pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/rise_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 #mv them to stock dir
 
 
-mv "$pngpath" "${dir}"/
-mv "$path" "${dir}"/
+#mv "$pngpath" "${dir}"/
+[[ -n "$path" ]] && mv "$path" "${dir}"/ && echo " rise ok"
+}
 
-echo " rise ok"
-}
-function trending() { #to finde new stocks to add  to disc
-output=$(./terminal.py "/stocks/ba/load ${i}/trending/exit")
-#extract the terminal output. extract top value query names, remove excess word and genrate a new list of stock to be checked
-(echo "${output}" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "${disc}"/trending.csv
-echo "trending ok"
-}
 function queries() {
 #export to csv dunction doesnt work and also png so here is the trick.
 
-queri_limit=5 #num of output related query
+queri_limit=7 #num of output related query
 output=$(./terminal.py "/stocks/ba/load ${i}/queries -l ${queri_limit}/exit")
 
 #extract the terminal output. extract top value query names, remove excess word and genrate a new list of stock to be checked
@@ -95,24 +91,10 @@ output=$(./terminal.py "/stocks/ba/load "${i}"/hist -n ${number} --raw --export 
 (echo "${output}" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "${dir}"/hist.csv
 
 svgpath=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/stocks/behavioural_analysis/hist_[0-9]*_[0-9]*.svg"| head -n 1)
-mv "$svgpath" "${dir}"/ 
+[[ -n "$svgpath" ]] &&  mv "$svgpath" "${dir}"/ 
 echo "hist ok"
 }
-function popular() {
-#no table output
 
-limit=25 #the bigger the better)
-number=50 #post number for every subs
-#subreddits="pennystocks, RobinHoodPennyStocks, Daytrading, StockMarket, stocks, investing, wallstreetbets" #can be changed
-#very time long
-
-output=$(./terminal.py "/stocks/ba/load "${i}"/popular -l ${limit} -n ${number}/exit")
-#there is no export function so i do it:
-
-
-(echo "${output}" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "${disc}"/popular.csv
-echo "popular ok"
-} #need reddit api
 function regions() {
 
 region_limit=3
@@ -123,8 +105,8 @@ outputpng=$(./terminal.py "/stocks/ba/load "${i}"/regions -l ${region_limit} --e
 region_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/regions_[0-9]*_[0-9]*.csv" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 region_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/regions_[0-9]*_[0-9]*.png" | head -n 1) #not sure head -1 is enouht to fin alwasy the file i wnat
 
-mv "$region_path" "${dir}"/ 
-mv "$region_pngpath" "${dir}"/
+[[ -n "$region_path" ]] && mv "$region_path" "${dir}"/ 
+[[ -n "$region_pngpath" ]] && mv "$region_pngpath" "${dir}"/
 echo " regions ok"
 }
 function bullbear() { #depend on a stock i passaed
@@ -155,7 +137,7 @@ export limitsent=15 #limit of tweets to extract per hour. (default: 15) 10-60
 output=$(./terminal.py "/stocks/ba/load "${i}"/sentiment -l ${limitsent} -d ${days} --export jpg/exit")
 sentiment_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/sentiment_[0-9]*_[0-9]*.jpg" | head -n 1)
 #copy png plot of sentiment to stock folder
-mv "$sentiment_path" "$dir"/
+[[ -n "$sentiment_path" ]] && mv "$sentiment_path" "$dir"/
 echo "sentiment ok"
 }
 function headlines() {
@@ -165,37 +147,49 @@ outputpng=$(./terminal.py "/stocks/ba/load "${i}"/headlines --export png/exit")
 headline_path=$(echo "$output" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/headlines_[0-9]*_[0-9]*.csv" | head -n 1)
 headline_pngpath=$(echo "$outputpng" | grep -Eo  "${HOME}/GamestonkTerminal/exports/common/behavioural_analysis/headlines_[0-9]*_[0-9]*.png" | head -n 1)
 
-mv "$headline_path" "$dir"/
-mv "$headline_pngpath" "$dir"/
+[[ -n "$headline_path" ]] && mv "$headline_path" "$dir"/
+[[ -n "$headline_pngpath" ]] && mv "$headline_pngpath" "$dir"/
 echo "headline ok"
-}
-function jimcra() {
-output=$(./terminal.py "/stocks/ba/load "${i}"/jcdr/exit")
-(echo "${output}" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "${disc}"/jimcra.csv
-echo "jim cra ok"
 }
 
 function jimrec() {
 output=$(./terminal.py "/stocks/ba/load "${i}"/jctr --raw/exit")
 
-(echo "${output}" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "${disc}"/jimrec.csv
+(echo "${output}" | sed '/├/d;/┏/,/└/!d;/┏/d;/┡/d;/└/d;s/│/,/g;s/┃/,/g') > "${dir}"/jimrec.csv
 echo "jim rec ok"
 }
 
-trend "$i"
-mentions "$i"
-rise "$i"
-trending "$i"
-queries "$i"
-hist "$i"
-popular "$i"
-regions "$i"
-bullbear "$i"
-infer "$i"
-twitter "$i"
-headlines "$i"
-jimcra "$i"
-jimrec "$i"
+
+export -f mentions
+export -f rise
+export -f queries
+export -f hist
+export -f regions
+export -f bullbear
+export -f infer
+export -f twitter
+export -f headlines
+export -f jimcra
+
+
+
+
+#trend
+#popular
+#trending
+#timeout 10s bash -c jimcra "$i"
+
+
+timeout 10s bash -c mentions "$i"
+timeout 10s bash -c rise "$i"
+timeout 10s bash -c queries "$i"
+timeout 10s bash -c hist "$i"
+timeout 10s bash -c regions "$i"
+timeout 10s bash -c bullbear "$i"
+timeout 10s bash -c infer "$i"
+timeout 10s bash -c twitter "$i"
+timeout 10s bash -c headlines "$i"
+timeout 10s bash -c jimrec "$i"
 
 
 #./banew: line 181: s: command not found ???? cant find the error
