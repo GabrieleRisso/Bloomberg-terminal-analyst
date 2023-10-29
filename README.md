@@ -1,8 +1,4 @@
-# bash wrapper for gamestonkterminal
-
-
-
-
+# AI market autonomous agent
 
 the neural network script is based on the research made here : https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=9165760
 
